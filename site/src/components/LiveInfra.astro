@@ -1,0 +1,73 @@
+---
+---
+
+<section id="live-infra" class="px-6 py-20">
+  <div class="mx-auto max-w-5xl">
+    <h2 class="text-sm font-medium tracking-wider text-[var(--accent)] uppercase">Live infra</h2>
+    <p class="mt-2 max-w-2xl text-2xl font-semibold text-[var(--text)]">
+      This widget calls a service running on the k3s cluster, right now.
+    </p>
+    <p class="mt-3 max-w-2xl text-sm text-[var(--text-muted)]">
+      <code class="font-mono text-[var(--accent)]">status-api</code> is deployed via Argo
+      CD GitOps and exposed from the EC2 node. It reports its own pod, uptime, and
+      request count — proof the cluster below is real and reachable, not a screenshot.
+    </p>
+
+    <div
+      id="infra-card"
+      class="mt-10 grid grid-cols-1 gap-4 rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] p-6 sm:grid-cols-4"
+    >
+      <div class="sm:col-span-4 flex items-center gap-2 text-sm" id="infra-status">
+        <span id="infra-dot" class="h-2 w-2 rounded-full bg-[var(--text-muted)]"></span>
+        <span id="infra-status-text" class="text-[var(--text-muted)]">Checking cluster…</span>
+      </div>
+
+      <div>
+        <div class="text-xs text-[var(--text-muted)]">Pod</div>
+        <div id="stat-pod" class="mt-1 font-mono text-sm text-[var(--text)]">—</div>
+      </div>
+      <div>
+        <div class="text-xs text-[var(--text-muted)]">Uptime</div>
+        <div id="stat-uptime" class="mt-1 font-mono text-sm text-[var(--text)]">—</div>
+      </div>
+      <div>
+        <div class="text-xs text-[var(--text-muted)]">Requests served</div>
+        <div id="stat-requests" class="mt-1 font-mono text-sm text-[var(--text)]">—</div>
+      </div>
+      <div>
+        <div class="text-xs text-[var(--text-muted)]">Node</div>
+        <div id="stat-node" class="mt-1 font-mono text-sm text-[var(--text)]">—</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script define:vars={{ apiUrl: import.meta.env.PUBLIC_STATUS_API_URL || "" }}>
+  (async function () {
+    const dot = document.getElementById("infra-dot");
+    const statusText = document.getElementById("infra-status-text");
+    const set = (id, val) => (document.getElementById(id).textContent = val);
+
+    if (!apiUrl) {
+      dot.style.background = "var(--text-muted)";
+      statusText.textContent = "status-api not configured yet (PUBLIC_STATUS_API_URL unset).";
+      return;
+    }
+
+    try {
+      const res = await fetch(`${apiUrl}/stats`, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      dot.style.background = "var(--ok)";
+      statusText.textContent = "Cluster reachable";
+      set("stat-pod", data.pod ?? "unknown");
+      set("stat-uptime", data.uptime ?? "unknown");
+      set("stat-requests", data.requests ?? "0");
+      set("stat-node", data.node ?? "unknown");
+    } catch (err) {
+      dot.style.background = "#ef4444";
+      statusText.textContent = "Cluster unreachable right now (cost-saving pause, or between deploys).";
+    }
+  })();
+</script>

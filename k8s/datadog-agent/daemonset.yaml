@@ -1,0 +1,76 @@
+# Tuned for a single free-tier t3.micro node (1GiB RAM): APM, process collection,
+# and log collection are disabled to keep the agent's footprint small next to
+# status-api, Argo CD, and k3s itself. Core system + kubelet/kube-state metrics
+# only — enough to back the Datadog dashboard in infra/terraform/modules/datadog.
+#
+# Expects a `datadog-secret` Secret (key: api-key) in this namespace, created
+# out-of-band (see runbooks/) — the API key is never committed to this repo.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: datadog-agent
+  namespace: datadog
+  labels:
+    app: datadog-agent
+spec:
+  selector:
+    matchLabels:
+      app: datadog-agent
+  template:
+    metadata:
+      labels:
+        app: datadog-agent
+    spec:
+      serviceAccountName: datadog-agent
+      containers:
+        - name: agent
+          image: gcr.io/datadoghq/agent:7
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          env:
+            - name: DD_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: datadog-secret
+                  key: api-key
+            - name: DD_SITE
+              value: "datadoghq.com"
+            - name: DD_KUBERNETES_KUBELET_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: KUBERNETES
+              value: "true"
+            - name: DD_APM_ENABLED
+              value: "false"
+            - name: DD_PROCESS_AGENT_ENABLED
+              value: "false"
+            - name: DD_LOGS_ENABLED
+              value: "false"
+            - name: DD_TAGS
+              value: "project:devops-mcp"
+          volumeMounts:
+            - name: dockersocket
+              mountPath: /var/run/containerd/containerd.sock
+              readOnly: true
+            - name: procdir
+              mountPath: /host/proc
+              readOnly: true
+            - name: cgroups
+              mountPath: /host/sys/fs/cgroup
+              readOnly: true
+      volumes:
+        - name: dockersocket
+          hostPath:
+            path: /run/k3s/containerd/containerd.sock
+        - name: procdir
+          hostPath:
+            path: /proc
+        - name: cgroups
+          hostPath:
+            path: /sys/fs/cgroup

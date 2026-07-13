@@ -1,0 +1,91 @@
+---
+const links = [
+  { href: "#stack", label: "Stack" },
+  { href: "#architecture", label: "Architecture" },
+  { href: "#live-infra", label: "Live Infra" },
+  { href: "#projects", label: "Projects" },
+  { href: "#contact", label: "Contact" },
+];
+---
+
+<header
+  class="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur-md"
+>
+  <div class="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+    <a href="#top" class="flex items-center gap-2 font-mono text-sm font-medium text-[var(--text)]">
+      <span
+        class="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--accent-soft)] text-[var(--accent)]"
+        >AC</span
+      >
+      <span class="hidden sm:inline">akash&nbsp;chavan</span>
+    </a>
+
+    <nav class="hidden items-center gap-6 text-sm text-[var(--text-muted)] md:flex">
+      {
+        links.map((link) => (
+          <a href={link.href} class="transition-colors hover:text-[var(--text)]">
+            {link.label}
+          </a>
+        ))
+      }
+    </nav>
+
+    <button
+      id="theme-toggle"
+      type="button"
+      aria-label="Toggle color theme"
+      class="flex h-9 w-9 items-center justify-center rounded-md border border-[var(--border)] text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
+    >
+      <svg
+        id="icon-sun"
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        class="hidden"
+      >
+        <circle cx="12" cy="12" r="4"></circle>
+        <path
+          d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
+        ></path>
+      </svg>
+      <svg
+        id="icon-moon"
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<script is:inline>
+  (function () {
+    const btn = document.getElementById("theme-toggle");
+    const sun = document.getElementById("icon-sun");
+    const moon = document.getElementById("icon-moon");
+
+    function sync() {
+      const theme = document.documentElement.dataset.theme;
+      sun.classList.toggle("hidden", theme !== "light");
+      moon.classList.toggle("hidden", theme === "light");
+    }
+    sync();
+
+    btn.addEventListener("click", () => {
+      const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+      document.documentElement.dataset.theme = next;
+      localStorage.setItem("theme", next);
+      sync();
+    });
+  })();
+</script>

@@ -1,0 +1,29 @@
+# secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+kubeconfig*
+
+# terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+backend.hcl
+!backend.hcl.example
+crash.log
+crash.*.log
+
+# node / astro
+node_modules/
+dist/
+.astro/
+
+# os
+.DS_Store
+
+# claude code local settings (session-specific, not project config)
+.claude/settings.local.json

@@ -1,0 +1,7 @@
+# Copy to backend.hcl (gitignored) after running the bootstrap config, filling in
+# the account ID from its output. Then: terraform init -backend-config=backend.hcl
+bucket         = "devops-mcp-tfstate-<ACCOUNT_ID>"
+key            = "prod/terraform.tfstate"
+region         = "ap-south-1"
+dynamodb_table = "devops-mcp-tfstate-lock"
+encrypt        = true

@@ -1,0 +1,101 @@
+---
+const categoryColor: Record<string, string> = {
+  Infra: "#3b82f6",
+  Observability: "#f59e0b",
+  "CI/CD": "#8b5cf6",
+  "Comms & Response": "#22c55e",
+};
+
+const mcps = [
+  {
+    n: 1,
+    name: "Kubernetes MCP",
+    category: "Infra",
+    detail: "Inspects pods, events, logs, and workload state on the k3s cluster.",
+  },
+  {
+    n: 2,
+    name: "Terraform MCP",
+    category: "Infra",
+    detail: "Reviews plans, explains drift, flags risky changes before apply.",
+  },
+  {
+    n: 3,
+    name: "AWS MCP",
+    category: "Infra",
+    detail: "Queries resources, IAM, and cost against the free-tier AWS account.",
+  },
+  {
+    n: 4,
+    name: "Datadog MCP",
+    category: "Observability",
+    detail: "Reads dashboards, monitors, and active alerts.",
+  },
+  {
+    n: 5,
+    name: "PagerDuty MCP",
+    category: "Observability",
+    detail: "Checks incidents, on-call schedules, and escalation state.",
+  },
+  {
+    n: 6,
+    name: "GitHub MCP",
+    category: "CI/CD",
+    detail: "Reviews pull requests, opens issues, reads repository context.",
+  },
+  {
+    n: 7,
+    name: "Argo CD MCP",
+    category: "CI/CD",
+    detail: "Audits sync status, drift, application health, and rollouts.",
+  },
+  {
+    n: 8,
+    name: "Slack MCP",
+    category: "Comms & Response",
+    detail: "Posts updates, reads thread context, coordinates incident response.",
+  },
+  {
+    n: 9,
+    name: "Incident Runbook MCP",
+    category: "Comms & Response",
+    detail: "Surfaces SOPs and step-by-step remediation from this repo's runbooks/.",
+  },
+];
+---
+
+<section id="architecture" class="border-y border-[var(--border)] bg-[var(--bg-elevated)] px-6 py-20">
+  <div class="mx-auto max-w-5xl">
+    <h2 class="text-sm font-medium tracking-wider text-[var(--accent)] uppercase">Architecture</h2>
+    <p class="mt-2 max-w-2xl text-2xl font-semibold text-[var(--text)]">
+      Claude reads context, uses tools, and takes action — through nine MCP servers.
+    </p>
+    <p class="mt-3 max-w-2xl text-sm text-[var(--text-muted)]">
+      Observe → Decide → Act. Each server below wraps a real system in this stack; the
+      full config lives in
+      <code class="font-mono text-[var(--accent)]">.mcp.json</code> at the repo root.
+    </p>
+
+    <div class="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {
+        mcps.map((mcp) => (
+          <div class="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-5">
+            <div class="mb-3 flex items-center justify-between">
+              <span class="font-mono text-xs text-[var(--text-muted)]">
+                {String(mcp.n).padStart(2, "0")}
+              </span>
+              <span
+                class="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                style={`color:${categoryColor[mcp.category]};background:${categoryColor[mcp.category]}1a`}
+              >
+                {mcp.category}
+              </span>
+            </div>
+            <h3 class="text-sm font-medium text-[var(--text)]">{mcp.name}</h3>
+            <p class="mt-1.5 text-sm leading-relaxed text-[var(--text-muted)]">{mcp.detail}</p>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>

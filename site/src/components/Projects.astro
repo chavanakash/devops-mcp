@@ -1,0 +1,48 @@
+---
+const projects = [
+  {
+    title: "This site — Claude-managed AI SRE stack",
+    desc: "Astro portfolio on S3 + CloudFront, k3s on EC2, Argo CD GitOps, Terraform IaC with plan-on-PR/apply-on-merge, Datadog + PagerDuty + Slack incident response, all operated through 9 Claude MCP servers.",
+    tags: ["Terraform", "Kubernetes", "Argo CD", "GitHub Actions", "Datadog", "MCP"],
+    href: "https://github.com/",
+  },
+  {
+    title: "status-api",
+    desc: "The small service behind this page's live-infra widget — reports pod identity, uptime, and request counts from inside the cluster. Built to be simple enough to read in thirty seconds.",
+    tags: ["Node.js", "Docker", "Kubernetes"],
+    href: "https://github.com/",
+  },
+];
+---
+
+<section id="projects" class="border-t border-[var(--border)] px-6 py-20">
+  <div class="mx-auto max-w-5xl">
+    <h2 class="text-sm font-medium tracking-wider text-[var(--accent)] uppercase">Projects</h2>
+    <p class="mt-2 max-w-xl text-2xl font-semibold text-[var(--text)]">Selected work</p>
+
+    <div class="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      {
+        projects.map((p) => (
+          <a
+            href={p.href}
+            target="_blank"
+            rel="noreferrer"
+            class="group rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] p-6 transition-colors hover:border-[var(--accent)]"
+          >
+            <h3 class="text-base font-medium text-[var(--text)] group-hover:text-[var(--accent)]">
+              {p.title}
+            </h3>
+            <p class="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">{p.desc}</p>
+            <div class="mt-4 flex flex-wrap gap-2">
+              {p.tags.map((tag) => (
+                <span class="rounded-full border border-[var(--border)] px-2 py-0.5 text-[11px] text-[var(--text-muted)]">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </a>
+        ))
+      }
+    </div>
+  </div>
+</section>

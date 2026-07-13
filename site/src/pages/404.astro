@@ -1,0 +1,19 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="404 — Akash Chavan">
+  <div class="flex min-h-screen flex-col items-center justify-center px-6 text-center">
+    <p class="font-mono text-sm text-[var(--accent)]">404</p>
+    <h1 class="mt-3 text-3xl font-semibold text-[var(--text)]">Page not found</h1>
+    <p class="mt-3 text-[var(--text-muted)]">
+      That route doesn't exist — but the infra powering this site does.
+    </p>
+    <a
+      href="/"
+      class="mt-8 rounded-md border border-[var(--border)] px-5 py-2.5 text-sm font-medium text-[var(--text)] transition-colors hover:border-[var(--accent)]"
+    >
+      Back home
+    </a>
+  </div>
+</Layout>

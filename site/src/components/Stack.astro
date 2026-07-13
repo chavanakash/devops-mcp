@@ -1,0 +1,54 @@
+---
+const groups = [
+  {
+    label: "Infra",
+    color: "#3b82f6",
+    items: ["Terraform", "AWS (EC2, S3, CloudFront, ECR, IAM)", "k3s / Kubernetes"],
+  },
+  {
+    label: "Observability",
+    color: "#f59e0b",
+    items: ["Datadog", "PagerDuty", "AWS Budgets / CloudWatch"],
+  },
+  {
+    label: "CI/CD",
+    color: "#8b5cf6",
+    items: ["GitHub Actions", "Argo CD (GitOps)", "Docker / ECR"],
+  },
+  {
+    label: "Comms & Response",
+    color: "#22c55e",
+    items: ["Slack", "Incident runbooks", "Claude (MCP orchestration)"],
+  },
+];
+---
+
+<section id="stack" class="px-6 py-20">
+  <div class="mx-auto max-w-5xl">
+    <h2 class="text-sm font-medium tracking-wider text-[var(--accent)] uppercase">Stack</h2>
+    <p class="mt-2 max-w-xl text-2xl font-semibold text-[var(--text)]">
+      Everything below is real, running infrastructure — not a slide.
+    </p>
+
+    <div class="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {
+        groups.map((group) => (
+          <div class="rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] p-5">
+            <div class="mb-4 flex items-center gap-2">
+              <span
+                class="h-2 w-2 rounded-full"
+                style={`background:${group.color}`}
+              />
+              <h3 class="text-sm font-medium text-[var(--text)]">{group.label}</h3>
+            </div>
+            <ul class="space-y-2 text-sm text-[var(--text-muted)]">
+              {group.items.map((item) => (
+                <li>{item}</li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
