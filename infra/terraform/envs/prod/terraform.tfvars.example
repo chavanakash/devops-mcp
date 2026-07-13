@@ -1,4 +1,5 @@
 aws_region         = "ap-south-1"
+aws_profile        = "dockerizzz" # named AWS CLI profile; "" falls back to the default chain
 project            = "devops-mcp"
 alert_email        = "chavanakash2584@gmail.com"
 monthly_budget_usd = "5"

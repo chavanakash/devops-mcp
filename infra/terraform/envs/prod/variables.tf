@@ -3,6 +3,12 @@ variable "aws_region" {
   default = "ap-south-1"
 }
 
+variable "aws_profile" {
+  description = "Named AWS CLI profile to use. Empty string falls back to the default credential chain."
+  type        = string
+  default     = ""
+}
+
 variable "project" {
   type    = string
   default = "devops-mcp"
