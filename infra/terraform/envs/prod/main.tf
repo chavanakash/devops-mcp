@@ -36,6 +36,8 @@ module "k3s_node" {
   project              = var.project
   github_repo          = var.github_repo
   deploy_datadog_agent = var.enable_datadog
+  aws_region           = var.aws_region
+  ecr_registry         = "${local.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com"
 }
 
 module "ecr" {

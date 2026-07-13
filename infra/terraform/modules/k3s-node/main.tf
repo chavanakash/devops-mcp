@@ -64,6 +64,16 @@ resource "aws_iam_role_policy_attachment" "ssm" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+# k3s/containerd has no native AWS SigV4 support for pulling from ECR, unlike
+# EKS's kubelet integration — the node itself needs to periodically mint an ECR
+# token and hand it to the cluster as an imagePullSecret (see user-data's
+# ecr-cred-refresh systemd timer). This is the IAM side of that: read-only pull
+# access, nothing else.
+resource "aws_iam_role_policy_attachment" "ecr_read" {
+  role       = aws_iam_role.node.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
 resource "aws_iam_instance_profile" "node" {
   name = "${var.project}-k3s-node"
   role = aws_iam_role.node.name
@@ -78,6 +88,8 @@ resource "aws_instance" "node" {
   user_data = templatefile("${path.module}/user_data.sh.tpl", {
     github_repo          = var.github_repo
     deploy_datadog_agent = var.deploy_datadog_agent
+    aws_region           = var.aws_region
+    ecr_registry         = var.ecr_registry
   })
   user_data_replace_on_change = true
 
