@@ -8,4 +8,4 @@ resources:
 images:
   - name: status-api
     newName: 611651385461.dkr.ecr.ap-south-1.amazonaws.com/devops-mcp-status-api
-    newTag: latest
+    newTag: v1
