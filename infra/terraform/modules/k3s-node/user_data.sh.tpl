@@ -106,6 +106,29 @@ k apply -f /tmp/argocd-ns.yaml
 # annotation at all, which is the standard workaround for this.
 k apply --server-side -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/core-install.yaml
 
+# The full install's argocd-server auto-creates a "default" AppProject at
+# startup; core mode has no API server to run that logic, so Applications
+# referencing project "default" (ours do) fail with InvalidSpecError until
+# one exists. Create it explicitly.
+cat > /tmp/default-appproject.yaml <<'EOF'
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: default
+  namespace: argocd
+spec:
+  description: Default permissive project (core mode has no API server to auto-create this)
+  sourceRepos:
+    - '*'
+  destinations:
+    - namespace: '*'
+      server: '*'
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+EOF
+k apply -f /tmp/default-appproject.yaml
+
 # We only use plain Applications, not ApplicationSets — one less component
 # competing for RAM.
 k -n argocd scale deployment argocd-applicationset-controller --replicas=0
