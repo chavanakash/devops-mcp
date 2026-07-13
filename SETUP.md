@@ -86,7 +86,6 @@ terraform output
 | `SITE_BUCKET` | `terraform output -raw site_bucket` |
 | `CLOUDFRONT_DISTRIBUTION_ID` | `terraform output -raw cloudfront_distribution_id` |
 | `ECR_REPOSITORY` | `terraform output -raw ecr_repository_url` (just the repo name after the last `/`) |
-| `STATUS_API_URL` | `terraform output -raw status_api_url` |
 
 **Environment**: create a `production` environment (Settings → Environments) with
 yourself as a required reviewer — this is the manual-approval gate on

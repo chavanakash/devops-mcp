@@ -42,20 +42,18 @@
   </div>
 </section>
 
-<script define:vars={{ apiUrl: import.meta.env.PUBLIC_STATUS_API_URL || "" }}>
+<script>
   (async function () {
     const dot = document.getElementById("infra-dot");
     const statusText = document.getElementById("infra-status-text");
     const set = (id, val) => (document.getElementById(id).textContent = val);
 
-    if (!apiUrl) {
-      dot.style.background = "var(--text-muted)";
-      statusText.textContent = "status-api not configured yet (PUBLIC_STATUS_API_URL unset).";
-      return;
-    }
-
+    // Relative path, proxied through CloudFront to the k3s node on /api/*
+    // (see infra/terraform/modules/static-site) — same-origin from the
+    // browser's point of view, and never plain HTTP, since status-api itself
+    // has no TLS and browsers block HTTPS-page-to-HTTP-API fetches outright.
     try {
-      const res = await fetch(`${apiUrl}/stats`, { cache: "no-store" });
+      const res = await fetch("/api/stats", { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 

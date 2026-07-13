@@ -32,8 +32,6 @@ jobs:
 
       - name: build
         run: npm run build
-        env:
-          PUBLIC_STATUS_API_URL: ${{ vars.STATUS_API_URL }}
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:

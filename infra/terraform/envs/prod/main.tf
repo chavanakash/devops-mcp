@@ -14,13 +14,6 @@ module "budget_alarm" {
   monthly_limit_usd = var.monthly_budget_usd
 }
 
-module "static_site" {
-  source = "../../modules/static-site"
-
-  project     = var.project
-  bucket_name = "${var.project}-site-${local.account_id}"
-}
-
 module "github_oidc" {
   source = "../../modules/github-oidc"
 
@@ -38,6 +31,14 @@ module "k3s_node" {
   deploy_datadog_agent = var.enable_datadog
   aws_region           = var.aws_region
   ecr_registry         = "${local.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com"
+}
+
+module "static_site" {
+  source = "../../modules/static-site"
+
+  project       = var.project
+  bucket_name   = "${var.project}-site-${local.account_id}"
+  api_origin_ip = module.k3s_node.public_ip
 }
 
 module "ecr" {
