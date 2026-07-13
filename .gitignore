@@ -27,5 +27,5 @@ dist/
 # os
 .DS_Store
 
-# claude code local settings (session-specific, not project config)
-.claude/settings.local.json
+# claude code local state (session-specific, not project config)
+.claude/
