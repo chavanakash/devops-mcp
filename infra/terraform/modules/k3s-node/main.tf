@@ -93,6 +93,16 @@ resource "aws_instance" "node" {
   })
   user_data_replace_on_change = true
 
+  # t3.micro's baseline is ~10% of a vCPU — k3s + Argo CD sustained well above
+  # that, burned through the credit balance, and got hard-throttled to that
+  # baseline (confirmed via the CPUCreditBalance metric sitting at ~0 for an
+  # hour straight), which is why kubectl itself started timing out. "unlimited"
+  # lets it burst past the balance instead of throttling; billed only for the
+  # actual overage (~$0.05/vCPU-hour), not a flat surcharge.
+  credit_specification {
+    cpu_credits = "unlimited"
+  }
+
   root_block_device {
     volume_size = 20 # free tier: 30GB, gp2/magnetic only — gp3 is billed from byte one
     volume_type = "gp2"
