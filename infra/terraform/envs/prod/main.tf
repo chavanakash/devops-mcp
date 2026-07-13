@@ -36,9 +36,9 @@ module "k3s_node" {
 module "static_site" {
   source = "../../modules/static-site"
 
-  project       = var.project
-  bucket_name   = "${var.project}-site-${local.account_id}"
-  api_origin_ip = module.k3s_node.public_ip
+  project           = var.project
+  bucket_name       = "${var.project}-site-${local.account_id}"
+  api_origin_domain = module.k3s_node.public_dns
 }
 
 module "ecr" {

@@ -59,7 +59,7 @@ resource "aws_cloudfront_distribution" "site" {
   }
 
   origin {
-    domain_name = var.api_origin_ip
+    domain_name = var.api_origin_domain
     origin_id   = "status-api"
 
     custom_origin_config {

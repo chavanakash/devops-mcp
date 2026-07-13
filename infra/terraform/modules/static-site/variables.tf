@@ -7,8 +7,8 @@ variable "bucket_name" {
   type        = string
 }
 
-variable "api_origin_ip" {
-  description = "Public IP of the k3s node running status-api. Proxied on /api/* so the browser only ever talks to CloudFront's HTTPS origin — status-api itself has no TLS."
+variable "api_origin_domain" {
+  description = "Public DNS name (not a raw IP — CloudFront custom origins reject those) of the k3s node running status-api. Proxied on /api/* so the browser only ever talks to CloudFront's HTTPS origin — status-api itself has no TLS."
   type        = string
 }
 
