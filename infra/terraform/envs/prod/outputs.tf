@@ -35,9 +35,9 @@ output "ecr_repository_url" {
 }
 
 output "datadog_dashboard_url" {
-  value = module.datadog.dashboard_url
+  value = try(module.datadog[0].dashboard_url, null)
 }
 
 output "pagerduty_service_id" {
-  value = module.pagerduty.service_id
+  value = try(module.pagerduty[0].service_id, null)
 }

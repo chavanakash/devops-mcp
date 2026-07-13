@@ -76,7 +76,8 @@ resource "aws_instance" "node" {
   iam_instance_profile   = aws_iam_instance_profile.node.name
 
   user_data = templatefile("${path.module}/user_data.sh.tpl", {
-    github_repo = var.github_repo
+    github_repo          = var.github_repo
+    deploy_datadog_agent = var.deploy_datadog_agent
   })
   user_data_replace_on_change = true
 

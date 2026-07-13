@@ -24,6 +24,19 @@ variable "github_repo" {
 }
 
 variable "pagerduty_user_email" {
-  description = "Email of the PagerDuty user (from signup) to put on the escalation policy."
+  description = "Email of the PagerDuty user (from signup) to put on the escalation policy. Only required if enable_pagerduty = true."
   type        = string
+  default     = ""
+}
+
+variable "enable_pagerduty" {
+  description = "Provision the PagerDuty escalation policy/service. Requires PAGERDUTY_TOKEN in the environment when true."
+  type        = bool
+  default     = false
+}
+
+variable "enable_datadog" {
+  description = "Provision Datadog monitors/dashboard, and deploy the Datadog Agent DaemonSet to the cluster. Requires DD_API_KEY/DD_APP_KEY in the environment when true."
+  type        = bool
+  default     = false
 }

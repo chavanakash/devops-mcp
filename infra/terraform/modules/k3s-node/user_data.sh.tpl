@@ -72,6 +72,7 @@ spec:
       - CreateNamespace=true
 EOF
 
+%{ if deploy_datadog_agent ~}
 # Second Application: the Datadog Agent DaemonSet. It will sit in CrashLoopBackOff
 # until the `datadog-secret` Secret is created in the `datadog` namespace (a manual,
 # one-time step documented in runbooks/ — the API key is never committed to git).
@@ -98,3 +99,4 @@ spec:
     syncOptions:
       - CreateNamespace=true
 EOF
+%{ endif ~}

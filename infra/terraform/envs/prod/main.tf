@@ -33,8 +33,9 @@ module "github_oidc" {
 module "k3s_node" {
   source = "../../modules/k3s-node"
 
-  project     = var.project
-  github_repo = var.github_repo
+  project              = var.project
+  github_repo          = var.github_repo
+  deploy_datadog_agent = var.enable_datadog
 }
 
 module "ecr" {
@@ -43,8 +44,12 @@ module "ecr" {
   project = var.project
 }
 
+# Datadog/PagerDuty are opt-in (default off) so the first apply doesn't need
+# those accounts/credentials at all. Flip enable_pagerduty / enable_datadog to
+# true in terraform.tfvars once you've set them up — see SETUP.md.
 module "pagerduty" {
   source = "../../modules/pagerduty"
+  count  = var.enable_pagerduty ? 1 : 0
 
   project    = var.project
   user_email = var.pagerduty_user_email
@@ -52,6 +57,7 @@ module "pagerduty" {
 
 module "datadog" {
   source = "../../modules/datadog"
+  count  = var.enable_datadog ? 1 : 0
 
   project       = var.project
   notify_handle = "@pagerduty-${var.project}-status-api"
