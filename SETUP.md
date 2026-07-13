@@ -12,18 +12,12 @@ your AWS account. Follow this in order.
 | Datadog | API key + Application key | Organization Settings → API Keys / Application Keys |
 | PagerDuty | Account (free trial), API token | Integrations → API Access Keys |
 | Slack | A workspace + an Incoming Webhook | api.slack.com/apps → Incoming Webhooks |
-| GitHub | Fix `gh auth login` (currently expired) | `gh auth login` |
+| GitHub | ~~Fix `gh auth login`~~ — repo pushed via a classic PAT, but the `gh` CLI itself is still unauthenticated (`gh auth status` fails with a stale keyring token); run `gh auth login --with-token` if you want `gh` commands (e.g. `gh secret set`) to work | `gh auth login` |
 
-## 2. Create the GitHub repo
+## 2. GitHub repo — done
 
-Once `gh auth login` succeeds:
-
-```bash
-gh repo create devops-mcp --public --source=. --remote=origin
-```
-
-(Or create it in the GitHub UI and `git remote add origin <url>`.) Confirm the
-`owner/repo` matches `terraform.tfvars`' `github_repo`.
+Already created and pushed: [chavanakash/devops-mcp](https://github.com/chavanakash/devops-mcp).
+`terraform.tfvars.example`'s `github_repo` matches (`chavanakash/devops-mcp`).
 
 ## 3. Bootstrap Terraform state (one-time, local state)
 

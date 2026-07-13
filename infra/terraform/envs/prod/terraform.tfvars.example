@@ -2,4 +2,4 @@ aws_region         = "ap-south-1"
 project            = "devops-mcp"
 alert_email        = "chavanakash2584@gmail.com"
 monthly_budget_usd = "5"
-github_repo        = "chavanakash2584/devops-mcp" # TODO: confirm exact GitHub owner/repo
+github_repo        = "chavanakash/devops-mcp"
