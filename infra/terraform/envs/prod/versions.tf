@@ -39,8 +39,18 @@ provider "aws" {
   }
 }
 
-# Credentials read from env: DD_API_KEY / DD_APP_KEY — never set here.
-provider "datadog" {}
+# Credentials read from env: DD_API_KEY / DD_APP_KEY — never set here. Terraform
+# configures every declared provider block eagerly, even with zero resources
+# referencing it (enable_datadog = false), so `validate` is what lets `plan`/
+# `apply` succeed without those env vars set at all until they're needed.
+provider "datadog" {
+  validate = var.enable_datadog
+}
 
-# Credentials read from env: PAGERDUTY_TOKEN — never set here.
-provider "pagerduty" {}
+# Credentials read from env: PAGERDUTY_TOKEN — never set here. Same eager-config
+# issue: an explicit non-empty placeholder is required when disabled, since the
+# provider errors on a completely absent token regardless of resource count.
+provider "pagerduty" {
+  token                       = var.enable_pagerduty ? null : "unset"
+  skip_credentials_validation = !var.enable_pagerduty
+}
