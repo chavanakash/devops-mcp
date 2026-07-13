@@ -1,7 +1,9 @@
 # Deploy failed / Argo CD stuck OutOfSync or Degraded
 
-**Triggers:** a GitHub Actions workflow run fails (red X), or `argocd app get
-status-api` / `datadog-agent` shows anything other than `Synced` + `Healthy`.
+**Triggers:** a GitHub Actions workflow run fails (red X), or `kubectl describe
+application status-api -n argocd` shows anything other than `Synced` + `Healthy`
+(see [argocd-access.md](./argocd-access.md) — Argo CD runs in core/CLI-less mode
+here).
 
 ## 1. Which layer failed?
 
@@ -10,7 +12,7 @@ status-api` / `datadog-agent` shows anything other than `Synced` + `Healthy`.
 | `terraform plan`/`apply` workflow red | Job logs — usually a provider auth issue (OIDC role misconfigured) or a real plan diff conflict |
 | `deploy site` workflow red | Usually `npm run build` failure (bad Astro/TS) or an S3/CloudFront permissions issue on the deploy role |
 | `status-api CI` workflow red | Docker build failure, or the `git push` step rejected (branch protection requiring PRs — see note below) |
-| Argo CD app `OutOfSync` | Manifest in `k8s/` doesn't match cluster state — check `argocd app diff <name>` |
+| Argo CD app `OutOfSync` | Manifest in `k8s/` doesn't match cluster state — check `kubectl describe application <name> -n argocd`'s `Events` |
 | Argo CD app `Degraded` | Pods aren't healthy — see [high-error-rate.md](./high-error-rate.md) or [k3s-node-down.md](./k3s-node-down.md) |
 
 ## 2. GitHub Actions auth failures

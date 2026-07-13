@@ -42,14 +42,6 @@
         "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
       }
     },
-    "argocd": {
-      "command": "npx",
-      "args": ["-y", "argocd-mcp@latest"],
-      "env": {
-        "ARGOCD_BASE_URL": "${ARGOCD_BASE_URL}",
-        "ARGOCD_API_TOKEN": "${ARGOCD_API_TOKEN}"
-      }
-    },
     "slack": {
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-slack"],

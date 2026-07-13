@@ -20,8 +20,9 @@ Claude via the Model Context Protocol (MCP).
    │  S3 + CloudFront ───▶ portfolio site (this page)                │
    │                                                                 │
    │  EC2 t3.micro ─── k3s (single node)                             │
-   │    ├─ Argo CD          watches k8s/ on this repo, auto-syncs    │
-   │    ├─ status-api       live-infra widget backend (NodePort)     │
+   │    ├─ Argo CD (core)   watches k8s/ on this repo, auto-syncs    │
+   │    ├─ status-api       live-infra widget backend, proxied on    │
+   │    │                   CloudFront's /api/* (no TLS of its own)  │
    │    └─ Datadog Agent    ships host/pod metrics                   │
    │  (no SSH, no public 6443 — admin access via SSM Session Manager)│
    │                                                                 │
@@ -31,7 +32,7 @@ Claude via the Model Context Protocol (MCP).
                          Datadog monitors │ PagerDuty escalation │ Slack
                                           ▼
                               ┌───────────────────────┐
-                              │ Claude Code + 9 MCPs   │
+                              │ Claude Code + 8 MCPs   │
                               │ (.mcp.json)            │
                               └───────────────────────┘
 ```
@@ -42,10 +43,20 @@ Claude via the Model Context Protocol (MCP).
   free. A single t3.micro running k3s stays inside the AWS free tier and still
   exercises real Kubernetes primitives (Deployments, Services, RBAC, GitOps).
 - **No SSH, no public API server.** The node's security group allows exactly one
-  inbound port: the status-api NodePort (the public demo). Everything
-  administrative — `kubectl`, the Argo CD UI, troubleshooting — goes through AWS
-  Systems Manager Session Manager, which needs no open ports and no SSH key
-  management. See `infra/terraform/modules/k3s-node`.
+  inbound port: the status-api NodePort (the public demo, itself only reachable
+  indirectly — through CloudFront's `/api/*` proxy, since status-api has no TLS
+  of its own and browsers block HTTPS-page-to-HTTP-API fetches). Everything
+  administrative — `kubectl`, troubleshooting — goes through AWS Systems Manager
+  Session Manager, which needs no open ports and no SSH key management. See
+  `infra/terraform/modules/k3s-node`.
+- **Argo CD "core" install, not the full one.** The full install (API server, UI,
+  Dex, notifications-controller, applicationset-controller — 7 components) was
+  enough extra RAM demand to tip this 1GiB node into sustained swap-thrashing
+  (measured 70-97% iowait via `vmstat`) even after capping every component's
+  resources. Core mode — just application-controller, repo-server, and redis —
+  is what actually fixed it. The tradeoff: no Argo CD web UI or REST API, so
+  Application sync/health status is read via the Kubernetes MCP (`kubectl get
+  applications -n argocd`) instead of a dedicated Argo CD MCP.
 - **GitOps via Argo CD, image tags bumped by CI.** `status-api-ci.yml` builds and
   pushes an image to ECR, then edits `k8s/status-api/kustomization.yaml`'s image
   tag and commits it back to `main`. Argo CD's `selfHeal` picks up the change —
@@ -66,25 +77,27 @@ Claude via the Model Context Protocol (MCP).
   through Terraform's `kubernetes` provider — consistent with the cluster having no
   Terraform-reachable API endpoint in the first place.
 
-## The 9 MCPs
+## The MCPs
 
-Claude's project-level MCP config (`.mcp.json`) wires up nine servers — the same
-grouping as the "MCP Stack Map": Infra, Observability, CI/CD, Comms & Response.
-Package names below were verified against each project's own docs/repo, not
-guessed — worth re-checking for updates before first use, since this ecosystem
-moves fast.
+Claude's project-level MCP config (`.mcp.json`) wires up eight servers, covering
+seven of the "MCP Stack Map" categories — Infra, Observability, CI/CD, Comms &
+Response. The eighth ("Argo CD") isn't a separate server: Argo CD runs in "core"
+mode here (no API server/UI — see the design decisions above), so Application
+sync/health status is read through the Kubernetes MCP instead, by querying the
+`Application` custom resource directly. Package names below were verified against
+each project's own docs/repo, not guessed — worth re-checking for updates before
+first use, since this ecosystem moves fast.
 
 | # | MCP | Package / endpoint | What it's for here |
 |---|---|---|---|
-| 1 | Kubernetes | [`mcp-server-kubernetes`](https://github.com/Flux159/mcp-server-kubernetes) (npm) | Inspect pods/events/logs on the k3s node via the kubeconfig pulled over SSM |
+| 1 | Kubernetes | [`mcp-server-kubernetes`](https://github.com/Flux159/mcp-server-kubernetes) (npm) | Inspect pods/events/logs, and Argo CD `Application` sync/health, on the k3s node via the kubeconfig pulled over SSM |
 | 2 | Terraform | [`hashicorp/terraform-mcp-server`](https://github.com/hashicorp/terraform-mcp-server) (Docker) | Review plans, explain diffs, look up registry docs while editing `infra/terraform/` |
-| 3 | AWS | [`awslabs.aws-api-mcp-server`](https://github.com/awslabs/mcp) (uvx) | Query live AWS resources, IAM, and cost against the `akash` profile |
+| 3 | AWS | [`awslabs.aws-api-mcp-server`](https://github.com/awslabs/mcp) (uvx) | Query live AWS resources, IAM, and cost against the `dockerizzz` profile |
 | 4 | Datadog | [Datadog's hosted MCP server](https://docs.datadoghq.com/bits_ai/mcp_server/) (remote HTTP) | Read the dashboard/monitors defined in `infra/terraform/modules/datadog` |
 | 5 | PagerDuty | [`pagerduty-mcp-server`](https://github.com/PagerDuty/pagerduty-mcp-server) (PyPI/uvx, official) | Check incidents, on-call state, escalation policy |
 | 6 | GitHub | [`github-mcp-server`](https://github.com/github/github-mcp-server) (Docker, official) | Review PRs, open issues, inspect Actions runs |
-| 7 | Argo CD | [`argocd-mcp`](https://github.com/argoproj-labs/mcp-for-argocd) (npm, Akuity) | Audit sync status and app health for `status-api` / `datadog-agent`, via a dedicated read-only `claude` account (see `runbooks/argocd-access.md`) |
-| 8 | Slack | [`@modelcontextprotocol/server-slack`](https://www.npmjs.com/package/@modelcontextprotocol/server-slack) (npm, official reference) | Post deploy/incident updates, read thread context |
-| 9 | Incident Runbook | [`@modelcontextprotocol/server-filesystem`](https://www.npmjs.com/package/@modelcontextprotocol/server-filesystem) (npm, official, read-only) | Serve `runbooks/*.md` directly into the conversation during an incident |
+| 7 | Slack | [`@modelcontextprotocol/server-slack`](https://www.npmjs.com/package/@modelcontextprotocol/server-slack) (npm, official reference) | Post deploy/incident updates, read thread context |
+| 8 | Incident Runbook | [`@modelcontextprotocol/server-filesystem`](https://www.npmjs.com/package/@modelcontextprotocol/server-filesystem) (npm, official, read-only) | Serve `runbooks/*.md` directly into the conversation during an incident |
 
 ### Example prompts once this is wired up
 
@@ -93,7 +106,8 @@ moves fast.
   confirms the open incident, Kubernetes MCP checks pod status.
 - *"Is there config drift between what's applied and what's in `infra/terraform/`?"*
   → Terraform MCP + AWS MCP cross-check.
-- *"Did `status-api` actually sync after the last merge?"* → Argo CD MCP.
+- *"Did `status-api` actually sync after the last merge?"* → Kubernetes MCP,
+  reading the `Application` resource's `status.sync`/`status.health` fields.
 
 ## Repo layout
 

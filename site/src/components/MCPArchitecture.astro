@@ -11,7 +11,8 @@ const mcps = [
     n: 1,
     name: "Kubernetes MCP",
     category: "Infra",
-    detail: "Inspects pods, events, logs, and workload state on the k3s cluster.",
+    detail:
+      "Inspects pods, events, logs, and workload state on the k3s cluster — including Argo CD's Application sync/health (it runs headless here, no separate API).",
   },
   {
     n: 2,
@@ -45,18 +46,12 @@ const mcps = [
   },
   {
     n: 7,
-    name: "Argo CD MCP",
-    category: "CI/CD",
-    detail: "Audits sync status, drift, application health, and rollouts.",
-  },
-  {
-    n: 8,
     name: "Slack MCP",
     category: "Comms & Response",
     detail: "Posts updates, reads thread context, coordinates incident response.",
   },
   {
-    n: 9,
+    n: 8,
     name: "Incident Runbook MCP",
     category: "Comms & Response",
     detail: "Surfaces SOPs and step-by-step remediation from this repo's runbooks/.",
@@ -68,7 +63,7 @@ const mcps = [
   <div class="mx-auto max-w-5xl">
     <h2 class="text-sm font-medium tracking-wider text-[var(--accent)] uppercase">Architecture</h2>
     <p class="mt-2 max-w-2xl text-2xl font-semibold text-[var(--text)]">
-      Claude reads context, uses tools, and takes action — through nine MCP servers.
+      Claude reads context, uses tools, and takes action — through eight MCP servers.
     </p>
     <p class="mt-3 max-w-2xl text-sm text-[var(--text-muted)]">
       Observe → Decide → Act. Each server below wraps a real system in this stack; the

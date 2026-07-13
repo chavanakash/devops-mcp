@@ -23,7 +23,7 @@ Model Context Protocol (MCP) — mirroring a real AI-SRE workflow.
 | CI/CD | GitHub Actions, GitOps via Argo CD, OIDC (no long-lived AWS keys in CI) |
 | Observability | Datadog dashboards/monitors as code |
 | Incident response | PagerDuty escalation policies + Slack notifications + markdown runbooks |
-| AI operations | Claude Code driving all of the above through 9 MCP servers |
+| AI operations | Claude Code driving all of the above through 8 MCP servers |
 
 ## Repo layout
 
@@ -40,6 +40,7 @@ SETUP.md            one-time deployment checklist
 
 ## Running Claude against this infra
 
-This repo ships a project-level `.mcp.json` registering MCP servers for Kubernetes,
-Terraform, AWS, Datadog, PagerDuty, GitHub, Argo CD, Slack, and the incident runbooks
+This repo ships a project-level `.mcp.json` registering MCP servers for Kubernetes
+(which also covers Argo CD's `Application` status — it runs headless here),
+Terraform, AWS, Datadog, PagerDuty, GitHub, Slack, and the incident runbooks
 directory. See [ARCHITECTURE.md](./ARCHITECTURE.md) for how each one is used day-to-day.

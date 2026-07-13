@@ -106,17 +106,16 @@ This triggers `site-deploy.yml` and `status-api-ci.yml` for the first time.
 See [runbooks/datadog-agent-setup.md](./runbooks/datadog-agent-setup.md) — one
 `kubectl create secret` command over an SSM session.
 
-## 9. Cluster access: kubeconfig + Argo CD token
+## 9. Cluster access: kubeconfig
 
 See [runbooks/argocd-access.md](./runbooks/argocd-access.md) for the full
 walkthrough (all via SSM — no SSH, no open ports beyond status-api). Short version:
 
 1. Pull the kubeconfig from the node, point it at an SSM tunnel to port 6443 →
    this is your `KUBECONFIG` for the Kubernetes MCP.
-2. Open a second SSM tunnel to Argo CD's NodePort (30444 → local 8443), log in as
-   `admin` with the auto-generated password, change it.
-3. Generate a token for the read-only `claude` account user-data already created →
-   this is your `ARGOCD_API_TOKEN` (`ARGOCD_BASE_URL=https://localhost:8443`).
+2. Argo CD runs in core mode (no UI/API server — it was too much RAM for a
+   1GiB node); check `Application` sync/health via `kubectl` through that same
+   tunnel, not a separate Argo CD MCP.
 
 ## 10. Wire Claude up
 
@@ -126,13 +125,12 @@ export KUBECONFIG=~/.kube/devops-mcp.yaml   # from step 9
 export DD_API_KEY=... DD_APP_KEY=...
 export PAGERDUTY_API_TOKEN=...
 export GITHUB_PERSONAL_ACCESS_TOKEN=...
-export ARGOCD_BASE_URL=https://localhost:8443 ARGOCD_API_TOKEN=...   # from step 9
 export SLACK_BOT_TOKEN=... SLACK_TEAM_ID=...
-claude mcp list   # should show all 9 servers from .mcp.json connected
+claude mcp list   # should show all 8 servers from .mcp.json connected
 ```
 
-Keep both SSM tunnels from step 9 running while `claude` is — the Kubernetes and
-Argo CD MCPs both go through them.
+Keep the SSM tunnel from step 9 running while `claude` is — the Kubernetes MCP
+goes through it.
 
 ## 11. Fill in real content
 
