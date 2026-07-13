@@ -82,8 +82,8 @@ resource "aws_instance" "node" {
   user_data_replace_on_change = true
 
   root_block_device {
-    volume_size = 20 # free tier: up to 30GB gp2/gp3
-    volume_type = "gp3"
+    volume_size = 20 # free tier: 30GB, gp2/magnetic only — gp3 is billed from byte one
+    volume_type = "gp2"
   }
 
   tags = {
@@ -92,6 +92,13 @@ resource "aws_instance" "node" {
   }
 }
 
+
+# Since Feb 2024, AWS bills all public IPv4 addresses ($0.005/hr) regardless of
+# attachment — the old "free while attached to a running instance" EIP exception
+# no longer applies. A new account gets 750 free public-IPv4 hours/month for its
+# first 12 months, which one EIP running continuously (~730-744 hrs/month) fits
+# under. This doesn't change the EIP-vs-default-public-IP tradeoff either way —
+# both are billed identically now — so a stable address remains the right choice.
 resource "aws_eip" "node" {
   instance = aws_instance.node.id
   domain   = "vpc"
