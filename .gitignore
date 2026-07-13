@@ -14,6 +14,8 @@ kubeconfig*
 !*.tfvars.example
 backend.hcl
 !backend.hcl.example
+tfplan
+*.tfplan
 crash.log
 crash.*.log
 
