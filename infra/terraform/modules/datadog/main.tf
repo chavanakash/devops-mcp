@@ -3,38 +3,30 @@
 # Terraform variables). The Datadog Agent itself runs as a DaemonSet in the k3s
 # cluster (see k8s/datadog-agent/) and is what actually ships host/container
 # metrics; this module only configures what Datadog does with them.
+#
+# Deliberately free-tier only: Datadog's free plan is Infrastructure Monitoring
+# only (5 hosts, 1-day retention) — no Synthetics, APM, or Logs. The status-api
+# uptime check below is therefore an Agent-side HTTP check (reports the
+# `network.http.can_connect` service check, configured via
+# k8s/datadog-agent/http-check-configmap.yaml), not `datadog_synthetics_test`,
+# which is a paid-only product.
 
-resource "datadog_synthetics_test" "status_api_uptime" {
-  name      = "${var.project} status-api uptime"
-  type      = "api"
-  subtype   = "http"
-  status    = "live"
-  message   = "status-api is unreachable. ${var.notify_handle}"
-  locations = ["aws:ap-south-1"]
+resource "datadog_monitor" "status_api_uptime" {
+  name    = "${var.project} status-api unreachable"
+  type    = "service check"
+  message = "status-api's Agent-side HTTP check is failing. ${var.notify_handle}"
 
-  request_definition {
-    method = "GET"
-    url    = "${var.status_api_url}/health"
+  query = "\"network.http.can_connect\".over(\"instance:status-api\").by(\"*\").last(3).count_by_status()"
+
+  monitor_thresholds {
+    critical = 3
+    warning  = 1
+    ok       = 1
   }
 
-  assertion {
-    type     = "statusCode"
-    operator = "is"
-    target   = "200"
-  }
-
-  options_list {
-    tick_every = 300 # every 5 minutes — plenty for a portfolio demo, minimal API usage
-    retry {
-      count    = 2
-      interval = 300
-    }
-    monitor_options {
-      renotify_interval = 60
-    }
-  }
-
-  tags = [var.project]
+  notify_no_data    = false
+  renotify_interval = 60
+  tags              = [var.project]
 }
 
 resource "datadog_monitor" "host_cpu_high" {
@@ -69,20 +61,20 @@ resource "datadog_dashboard" "overview" {
 
       widget {
         check_status_definition {
-          title    = "Uptime check"
-          check    = "status-api.uptime"
+          title    = "Uptime check (Agent HTTP check)"
+          check    = "network.http.can_connect"
           group    = "*"
           grouping = "cluster"
+          tags     = ["instance:status-api"]
         }
       }
 
       widget {
-        timeseries_definition {
-          title = "Requests"
-          request {
-            q            = "sum:trace.express.request.hits{service:status-api}.as_count()"
-            display_type = "bars"
-          }
+        note_definition {
+          content          = "Request-level tracing (APM) isn't in Datadog's free tier. For live request counts, see the portfolio site's \"Live infra\" widget, which reads status-api's own /stats endpoint directly."
+          background_color = "gray"
+          font_size        = "14"
+          text_align       = "left"
         }
       }
     }

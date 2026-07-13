@@ -1,0 +1,15 @@
+# Agent-side HTTP check (Infrastructure Monitoring — included in Datadog's free
+# tier) instead of Synthetic Monitoring (a paid-only product). Reports the
+# `network.http.can_connect` service check that infra/terraform/modules/datadog's
+# monitor watches.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: datadog-http-check
+  namespace: datadog
+data:
+  conf.yaml: |
+    instances:
+      - name: status-api
+        url: http://status-api.default.svc.cluster.local:8080/health
+        timeout: 5

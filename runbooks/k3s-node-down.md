@@ -1,8 +1,8 @@
 # k3s node down / status-api unreachable
 
-**Triggers:** Datadog synthetic uptime check on `status-api.uptime` fails; the
-portfolio site's "Live infra" widget shows "Cluster unreachable"; PagerDuty pages
-via the `devops-mcp-status-api` service.
+**Triggers:** Datadog's Agent-side HTTP check (`network.http.can_connect`,
+instance `status-api`) fails; the portfolio site's "Live infra" widget shows
+"Cluster unreachable"; PagerDuty pages via the `devops-mcp-status-api` service.
 
 ## 1. Confirm it's real
 

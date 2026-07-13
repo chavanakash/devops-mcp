@@ -64,6 +64,10 @@ spec:
             - name: cgroups
               mountPath: /host/sys/fs/cgroup
               readOnly: true
+            - name: http-check-config
+              mountPath: /etc/datadog-agent/conf.d/http_check.d/conf.yaml
+              subPath: conf.yaml
+              readOnly: true
       volumes:
         - name: dockersocket
           hostPath:
@@ -74,3 +78,6 @@ spec:
         - name: cgroups
           hostPath:
             path: /sys/fs/cgroup
+        - name: http-check-config
+          configMap:
+            name: datadog-http-check

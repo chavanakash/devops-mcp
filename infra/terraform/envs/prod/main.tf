@@ -53,7 +53,6 @@ module "pagerduty" {
 module "datadog" {
   source = "../../modules/datadog"
 
-  project        = var.project
-  status_api_url = module.k3s_node.status_api_url
-  notify_handle  = "@pagerduty-${var.project}-status-api"
+  project       = var.project
+  notify_handle = "@pagerduty-${var.project}-status-api"
 }
