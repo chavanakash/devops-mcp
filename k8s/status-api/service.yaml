@@ -6,10 +6,12 @@ metadata:
     app: status-api
 spec:
   # Docker Desktop's Kubernetes auto-binds LoadBalancer services to localhost —
-  # no NodePort/port-forward dance needed for local access.
+  # no NodePort/port-forward dance needed for local access. Port 8090, not
+  # 8080: this Mac's cluster already has other, unrelated LoadBalancer
+  # services (a pre-existing monitoring/Grafana stack) holding 8080.
   type: LoadBalancer
   selector:
     app: status-api
   ports:
-    - port: 8080
+    - port: 8090
       targetPort: 8080
