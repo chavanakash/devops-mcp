@@ -1,42 +1,32 @@
 # Deploy failed / Argo CD stuck OutOfSync or Degraded
 
 **Triggers:** a GitHub Actions workflow run fails (red X), or `kubectl describe
-application status-api -n argocd` shows anything other than `Synced` + `Healthy`
-(see [argocd-access.md](./argocd-access.md) — Argo CD runs in core/CLI-less mode
-here).
+application status-api -n argocd` shows anything other than `Synced` + `Healthy`.
 
 ## 1. Which layer failed?
 
 | Symptom | Look at |
 |---|---|
-| `terraform plan`/`apply` workflow red | Job logs — usually a provider auth issue (OIDC role misconfigured) or a real plan diff conflict |
-| `deploy site` workflow red | Usually `npm run build` failure (bad Astro/TS) or an S3/CloudFront permissions issue on the deploy role |
-| `status-api CI` workflow red | Docker build failure, or the `git push` step rejected (branch protection requiring PRs — see note below) |
+| `code scan` workflow red | CodeQL found a real finding (check the Security tab), or the Trivy step found a CRITICAL/HIGH CVE with a known fix |
+| `deploy site` workflow red | Usually `npm run build` failure (bad Astro/TS), or GitHub Pages isn't enabled yet (Settings → Pages → Source: GitHub Actions) |
+| `status-api CI` workflow red | Docker build failure, the Trivy image scan failing the build (see below), or the `git push` step rejected (branch protection requiring PRs) |
 | Argo CD app `OutOfSync` | Manifest in `k8s/` doesn't match cluster state — check `kubectl describe application <name> -n argocd`'s `Events` |
-| Argo CD app `Degraded` | Pods aren't healthy — see [high-error-rate.md](./high-error-rate.md) or [k3s-node-down.md](./k3s-node-down.md) |
+| Argo CD app `Degraded` | Pods aren't healthy — see [self-heal.md](./self-heal.md) for the diagnosis/remediation playbook |
 
-## 2. GitHub Actions auth failures
+## 2. Trivy failed the image scan
 
-If a workflow fails at the `configure-aws-credentials` step:
-
-- Confirm the repo has `AWS_PLAN_ROLE_ARN` / `AWS_DEPLOY_ROLE_ARN` secrets set
-  (from `terraform output github_oidc_plan_role_arn` / `github_oidc_deploy_role_arn`).
-- Confirm the OIDC trust policy's `sub` condition matches — it's scoped to
-  `repo:<owner>/<repo>:ref:refs/heads/main` and `repo:<owner>/<repo>:environment:production`.
-  A fork, a rename, or a different branch won't match and will be denied by design.
+`status-api-ci.yml` fails the build on CRITICAL/HIGH vulnerabilities in the built
+image. Check the workflow's Trivy step output for which package/CVE. Usually
+fixed by bumping the base image (`node:22-alpine` in `apps/status-api/Dockerfile`)
+or the affected npm dependency, not by suppressing the check.
 
 ## 3. Argo CD access
 
-```bash
-aws ssm start-session --target "$(terraform -chdir=infra/terraform/envs/prod output -raw k3s_node_instance_id)" \
-  --document-name AWS-StartPortForwardingSession \
-  --parameters '{"portNumber":["6443"],"localPortNumber":["6443"]}'
-```
-
-In another terminal, with a kubeconfig pointed at `localhost:6443` (or just use
-`kubectl` inside the SSM shell directly against the in-cluster kubeconfig):
+No tunnel needed — see [local-cluster-access.md](./local-cluster-access.md) for
+the full walkthrough. Short version:
 
 ```bash
+kubectl config use-context docker-desktop
 kubectl get applications -n argocd
 kubectl describe application status-api -n argocd
 ```

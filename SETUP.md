@@ -1,139 +1,93 @@
 # Setup checklist
 
-Everything in this repo is written and validated (`terraform validate`, Astro
-build, Docker build all pass locally). What's left is real-world setup that only
-you can do — account creation, secrets, and the first `terraform apply` against
-your AWS account. Follow this in order.
+The local cluster is already bootstrapped (Argo CD installed and running on
+Docker Desktop's Kubernetes via `scripts/setup-local-cluster.sh`). What's left is
+pushing the code, the one-time manual steps only you can do (GitHub Pages
+toggle, ghcr pull secret, ngrok), and wiring Claude up.
 
-## 1. Accounts to create (free tiers)
-
-| Service | What you need | Where |
-|---|---|---|
-| Datadog | API key + Application key | Organization Settings → API Keys / Application Keys |
-| PagerDuty | Account (free trial), API token | Integrations → API Access Keys |
-| Slack | A workspace + an Incoming Webhook | api.slack.com/apps → Incoming Webhooks |
-| GitHub | ~~Fix `gh auth login`~~ — repo pushed via a classic PAT, but the `gh` CLI itself is still unauthenticated (`gh auth status` fails with a stale keyring token); run `gh auth login --with-token` if you want `gh` commands (e.g. `gh secret set`) to work | `gh auth login` |
-
-## 2. GitHub repo — done
-
-Already created and pushed: [chavanakash/devops-mcp](https://github.com/chavanakash/devops-mcp).
-`terraform.tfvars.example`'s `github_repo` matches (`chavanakash/devops-mcp`).
-
-## 3. Bootstrap Terraform state (one-time, local state)
-
-```bash
-cd infra/terraform/bootstrap
-terraform init
-terraform apply
-```
-
-Note the `state_bucket` output, then:
-
-```bash
-cd ../envs/prod
-cp backend.hcl.example backend.hcl   # fill in the account ID from the output above
-cp terraform.tfvars.example terraform.tfvars   # fill in github_repo, pagerduty_user_email
-terraform init -backend-config=backend.hcl
-```
-
-## 4. Export secrets for the first local apply
-
-```bash
-export DD_API_KEY=...
-export DD_APP_KEY=...
-export PAGERDUTY_TOKEN=...
-```
-
-## 5. Review, then apply
-
-```bash
-terraform plan    # read it — this creates real (free-tier) AWS resources
-terraform apply
-```
-
-This provisions: the budget alarm, S3+CloudFront, the k3s EC2 node (which
-bootstraps k3s + Argo CD + the status-api and datadog-agent Argo CD Applications
-via user-data), the ECR repo, the GitHub OIDC roles, and the Datadog/PagerDuty
-config.
-
-Grab the outputs — you'll need them next:
-
-```bash
-terraform output
-```
-
-## 6. Configure the GitHub repo
-
-**Secrets** (Settings → Secrets and variables → Actions → Secrets):
-
-| Name | Value |
-|---|---|
-| `AWS_PLAN_ROLE_ARN` | `terraform output -raw github_oidc_plan_role_arn` |
-| `AWS_DEPLOY_ROLE_ARN` | `terraform output -raw github_oidc_deploy_role_arn` |
-| `DD_API_KEY`, `DD_APP_KEY` | from step 1 |
-| `PAGERDUTY_TOKEN` | from step 1 |
-| `SLACK_WEBHOOK_URL` | from step 1 |
-
-**Variables** (same page, Variables tab):
-
-| Name | Value |
-|---|---|
-| `AWS_REGION` | `ap-south-1` |
-| `TF_STATE_BUCKET` | `terraform -chdir=infra/terraform/bootstrap output -raw state_bucket` |
-| `TF_STATE_LOCK_TABLE` | `terraform -chdir=infra/terraform/bootstrap output -raw lock_table` |
-| `ALERT_EMAIL` | your email |
-| `PAGERDUTY_USER_EMAIL` | your PagerDuty account email |
-| `SITE_BUCKET` | `terraform output -raw site_bucket` |
-| `CLOUDFRONT_DISTRIBUTION_ID` | `terraform output -raw cloudfront_distribution_id` |
-| `ECR_REPOSITORY` | `terraform output -raw ecr_repository_url` (just the repo name after the last `/`) |
-
-**Environment**: create a `production` environment (Settings → Environments) with
-yourself as a required reviewer — this is the manual-approval gate on
-`terraform apply` and deploys.
-
-## 7. Push
+## 1. Push the code
 
 ```bash
 git add -A
-git commit -m "Initial commit: DevOps portfolio + AI SRE stack"
-git push -u origin main
+git commit -m "Pivot to local Kubernetes + Argo CD + AI self-healing"
+git push
 ```
 
-This triggers `site-deploy.yml` and `status-api-ci.yml` for the first time.
+## 2. Enable GitHub Pages
 
-## 8. Datadog Agent secret (manual, cluster-side)
+Repo → **Settings → Pages → Source: GitHub Actions**. One-time toggle;
+`site-deploy.yml` handles the rest on every push to `site/`.
 
-See [runbooks/datadog-agent-setup.md](./runbooks/datadog-agent-setup.md) — one
-`kubectl create secret` command over an SSM session.
+## 3. ghcr.io pull secret (cluster-side, one-time)
 
-## 9. Cluster access: kubeconfig
+See [runbooks/local-cluster-access.md](./runbooks/local-cluster-access.md) §3 —
+a classic GitHub PAT (`read:packages` scope) turned into a
+`kubectl create secret docker-registry` command. `status-api`'s Deployment
+already references it via `imagePullSecrets`.
 
-See [runbooks/argocd-access.md](./runbooks/argocd-access.md) for the full
-walkthrough (all via SSM — no SSH, no open ports beyond status-api). Short version:
+## 4. First status-api image
 
-1. Pull the kubeconfig from the node, point it at an SSM tunnel to port 6443 →
-   this is your `KUBECONFIG` for the Kubernetes MCP.
-2. Argo CD runs in core mode (no UI/API server — it was too much RAM for a
-   1GiB node); check `Application` sync/health via `kubectl` through that same
-   tunnel, not a separate Argo CD MCP.
+`status-api-ci.yml` builds and pushes on changes to `apps/status-api/**` — push
+already covers this from step 1 if that path was touched. Otherwise, trigger it
+manually: repo → **Actions → status-api CI → Run workflow**.
 
-## 10. Wire Claude up
+Once it's pushed, Argo CD (already watching `k8s/status-api` on `main`) syncs
+automatically. Confirm:
 
 ```bash
-export AWS_PROFILE=...        # your AWS CLI profile
-export KUBECONFIG=~/.kube/devops-mcp.yaml   # from step 9
-export DD_API_KEY=... DD_APP_KEY=...
-export PAGERDUTY_API_TOKEN=...
-export GITHUB_PERSONAL_ACCESS_TOKEN=...
-export SLACK_BOT_TOKEN=... SLACK_TEAM_ID=...
-claude mcp list   # should show all 8 servers from .mcp.json connected
+kubectl config use-context docker-desktop
+kubectl get applications -n argocd
+kubectl get pods -n default
 ```
 
-Keep the SSM tunnel from step 9 running while `claude` is — the Kubernetes MCP
-goes through it.
+## 5. Public tunnel for the "Live infra" widget
 
-## 11. Fill in real content
+```bash
+kubectl get svc status-api -n default   # note the port
+ngrok http <port>
+```
+
+Take the printed `https://*.ngrok-free.app` URL and set it as the
+`STATUS_API_URL` repo variable (**Settings → Secrets and variables → Actions →
+Variables**), then re-run `deploy site` (or push any `site/` change) to rebuild
+with it baked in. See
+[runbooks/local-cluster-access.md](./runbooks/local-cluster-access.md) §4 —
+this needs redoing every time you restart `ngrok` without a reserved static
+domain, since the URL changes.
+
+## 6. Optional: Datadog / PagerDuty / Slack
+
+All opt-in, all deferred by default:
+
+- **Datadog**: [runbooks/datadog-agent-setup.md](./runbooks/datadog-agent-setup.md)
+- **PagerDuty / Slack**: create the accounts/webhook, export
+  `PAGERDUTY_API_TOKEN`, `SLACK_BOT_TOKEN`, `SLACK_TEAM_ID` for step 7 below,
+  and add `SLACK_WEBHOOK_URL` as a repo secret if you want deploy notifications
+  in `status-api-ci.yml`/`site-deploy.yml`.
+
+## 7. Wire Claude up
+
+```bash
+export KUBECONFIG=~/.kube/config   # or wherever yours lives; docker-desktop context
+export ARGOCD_BASE_URL=https://localhost ARGOCD_API_TOKEN=...   # runbooks/local-cluster-access.md §2
+export GITHUB_PERSONAL_ACCESS_TOKEN=...
+export SLACK_BOT_TOKEN=... SLACK_TEAM_ID=...
+export DD_API_KEY=... DD_APP_KEY=...            # only if Datadog is set up
+export PAGERDUTY_API_TOKEN=...                  # only if PagerDuty is set up
+claude mcp list   # should show all 7 servers from .mcp.json connected
+```
+
+## 8. Turn on self-healing
+
+```
+/loop 5m Follow runbooks/self-heal.md against the local cluster via the Kubernetes MCP.
+```
+
+Runs for as long as that Claude Code session stays open — see
+[ARCHITECTURE.md](./ARCHITECTURE.md) for why this is an active session loop,
+not an unattended daemon.
+
+## 9. Fill in real content
 
 - `site/src/components/About.astro`, `Hero.astro`, `Projects.astro`, `Footer.astro`
   — swap placeholder bio/links for the real thing.
-- `README.md` — add the live CloudFront URL once step 7 finishes.

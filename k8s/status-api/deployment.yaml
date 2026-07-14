@@ -14,11 +14,11 @@ spec:
       labels:
         app: status-api
     spec:
-      # Created/refreshed by the node's ecr-cred-refresh systemd timer (see
-      # infra/terraform/modules/k3s-node/user_data.sh.tpl) — plain k3s has no
-      # built-in AWS SigV4 support for pulling from a private ECR repo.
+      # One-time manual secret (a GitHub PAT with read:packages scope) — see
+      # runbooks/local-cluster-access.md. Unlike ECR, ghcr.io PATs don't expire
+      # every 12h, so this needs no refresh automation.
       imagePullSecrets:
-        - name: ecr-pull-secret
+        - name: ghcr-pull-secret
       containers:
         - name: status-api
           image: status-api # rewritten by kustomization.yaml's images: block

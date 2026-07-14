@@ -7,16 +7,12 @@
         "KUBECONFIG": "${KUBECONFIG}"
       }
     },
-    "terraform": {
-      "command": "docker",
-      "args": ["run", "-i", "--rm", "hashicorp/terraform-mcp-server"]
-    },
-    "aws": {
-      "command": "uvx",
-      "args": ["awslabs.aws-api-mcp-server@latest"],
+    "argocd": {
+      "command": "npx",
+      "args": ["-y", "argocd-mcp@latest"],
       "env": {
-        "AWS_REGION": "ap-south-1",
-        "AWS_PROFILE": "${AWS_PROFILE}"
+        "ARGOCD_BASE_URL": "${ARGOCD_BASE_URL}",
+        "ARGOCD_API_TOKEN": "${ARGOCD_API_TOKEN}"
       }
     },
     "datadog": {

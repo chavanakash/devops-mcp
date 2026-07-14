@@ -1,7 +1,9 @@
 # Agent-side HTTP check (Infrastructure Monitoring — included in Datadog's free
 # tier) instead of Synthetic Monitoring (a paid-only product). Reports the
-# `network.http.can_connect` service check that infra/terraform/modules/datadog's
-# monitor watches.
+# `network.http.can_connect` service check — set up a monitor watching it
+# manually in the Datadog UI (or ask Claude to, via the Datadog MCP, once it's
+# wired up) since there's no Terraform managing Datadog config in this local
+# version of the project.
 apiVersion: v1
 kind: ConfigMap
 metadata:

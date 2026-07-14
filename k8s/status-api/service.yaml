@@ -5,10 +5,11 @@ metadata:
   labels:
     app: status-api
 spec:
-  type: NodePort
+  # Docker Desktop's Kubernetes auto-binds LoadBalancer services to localhost —
+  # no NodePort/port-forward dance needed for local access.
+  type: LoadBalancer
   selector:
     app: status-api
   ports:
     - port: 8080
       targetPort: 8080
-      nodePort: 30080

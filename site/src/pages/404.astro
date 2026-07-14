@@ -10,7 +10,7 @@ import Layout from "../layouts/Layout.astro";
       That route doesn't exist — but the infra powering this site does.
     </p>
     <a
-      href="/"
+      href={import.meta.env.BASE_URL}
       class="mt-8 rounded-md border border-[var(--border)] px-5 py-2.5 text-sm font-medium text-[var(--text)] transition-colors hover:border-[var(--accent)]"
     >
       Back home

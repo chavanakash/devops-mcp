@@ -1,10 +1,16 @@
-# Tuned for a single free-tier t3.micro node (1GiB RAM): APM, process collection,
-# and log collection are disabled to keep the agent's footprint small next to
-# status-api, Argo CD, and k3s itself. Core system + kubelet/kube-state metrics
-# only — enough to back the Datadog dashboard in infra/terraform/modules/datadog.
+# APM/process/log collection stay disabled — this is a portfolio demo, not a
+# production fleet, and core system + kubelet metrics are enough to back a
+# dashboard. Real resources here (Docker Desktop on a real machine, not a
+# 1GiB cloud instance), so the limits below have real headroom, not a survival
+# minimum.
 #
 # Expects a `datadog-secret` Secret (key: api-key) in this namespace, created
-# out-of-band (see runbooks/) — the API key is never committed to this repo.
+# out-of-band (see runbooks/datadog-agent-setup.md) — the API key is never
+# committed to this repo.
+#
+# hostPath below assumes Docker Desktop's Kubernetes containerd socket
+# location; adjust if running on a different local cluster (kind/minikube use
+# different paths).
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -55,8 +61,14 @@ spec:
             - name: DD_TAGS
               value: "project:devops-mcp"
           volumeMounts:
+            # Docker Desktop's Kubernetes reports containerRuntimeVersion as
+            # docker://... (a Docker-backed CRI), unlike k3s's raw containerd —
+            # mount the Docker socket instead. Not yet verified end-to-end
+            # against a real Datadog account (this whole DaemonSet is opt-in
+            # and undeployed until you set enable_datadog-equivalent up) —
+            # double-check container-level metrics actually populate once you do.
             - name: dockersocket
-              mountPath: /var/run/containerd/containerd.sock
+              mountPath: /var/run/docker.sock
               readOnly: true
             - name: procdir
               mountPath: /host/proc
@@ -71,7 +83,7 @@ spec:
       volumes:
         - name: dockersocket
           hostPath:
-            path: /run/k3s/containerd/containerd.sock
+            path: /var/run/docker.sock
         - name: procdir
           hostPath:
             path: /proc

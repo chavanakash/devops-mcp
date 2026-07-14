@@ -9,13 +9,17 @@ on:
   workflow_dispatch: {}
 
 permissions:
-  id-token: write
   contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment: production
     defaults:
       run:
         working-directory: site
@@ -32,21 +36,27 @@ jobs:
 
       - name: build
         run: npm run build
+        env:
+          # The ngrok URL for status-api — changes whenever the tunnel restarts.
+          # See runbooks/local-cluster-access.md. Unset = widget just shows
+          # "not configured" instead of failing the build.
+          PUBLIC_STATUS_API_URL: ${{ vars.STATUS_API_URL }}
 
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
         with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          path: site/dist
 
-      - name: sync to S3
-        run: |
-          aws s3 sync dist/ "s3://${{ vars.SITE_BUCKET }}" --delete
-
-      - name: invalidate CloudFront
-        run: |
-          aws cloudfront create-invalidation \
-            --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" \
-            --paths "/*"
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v4
+        id: deployment
 
       - name: notify slack
         if: always()

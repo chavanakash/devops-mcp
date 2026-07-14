@@ -8,43 +8,54 @@ on:
       - ".github/workflows/status-api-ci.yml"
   workflow_dispatch: {}
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE: ghcr.io/${{ github.repository_owner }}/devops-mcp-status-api
+
 permissions:
-  id-token: write
   contents: write # to commit the new image tag back to k8s/status-api
+  packages: write # to push to ghcr.io
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    environment: production
     steps:
       - uses: actions/checkout@v4
 
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: docker/login-action@v3
         with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: aws-actions/amazon-ecr-login@v2
-        id: ecr-login
-
-      - name: build and push image
+      - name: build image
         id: build
         working-directory: apps/status-api
-        env:
-          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
-          REPOSITORY: ${{ vars.ECR_REPOSITORY }}
         run: |
           tag="${GITHUB_SHA::12}"
-          docker build -t "$REGISTRY/$REPOSITORY:$tag" -t "$REGISTRY/$REPOSITORY:latest" .
-          docker push "$REGISTRY/$REPOSITORY:$tag"
-          docker push "$REGISTRY/$REPOSITORY:latest"
+          docker build -t "$IMAGE:$tag" -t "$IMAGE:latest" .
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      # Fails the build on HIGH/CRITICAL vulnerabilities in the image itself
+      # (OS packages + npm deps) before anything gets pushed.
+      - name: scan image (Trivy)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: "${{ env.IMAGE }}:${{ steps.build.outputs.tag }}"
+          severity: "CRITICAL,HIGH"
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: push image
+        run: |
+          docker push "$IMAGE:${{ steps.build.outputs.tag }}"
+          docker push "$IMAGE:latest"
 
       - name: bump image tag for Argo CD (GitOps)
         working-directory: k8s/status-api
         run: |
           curl -sL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz" | tar xz
-          ./kustomize edit set image "status-api=${{ steps.ecr-login.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ steps.build.outputs.tag }}"
+          ./kustomize edit set image "status-api=${{ env.IMAGE }}:${{ steps.build.outputs.tag }}"
           rm -f ./kustomize
 
           git config user.name "github-actions[bot]"

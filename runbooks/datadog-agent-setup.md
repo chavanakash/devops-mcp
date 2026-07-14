@@ -1,38 +1,32 @@
-# Datadog Agent: one-time secret setup
+# Datadog Agent: one-time secret setup (opt-in)
 
-The Datadog Agent DaemonSet (`k8s/datadog-agent/`) is deployed by Argo CD like
-everything else, but it needs a `DD_API_KEY` that must never be committed to git —
-so the `datadog-secret` Secret it reads from is created manually, once, directly
-on the cluster.
+The Datadog Agent DaemonSet (`k8s/datadog-agent/`) isn't deployed by default —
+`scripts/setup-local-cluster.sh` only creates its Argo CD Application when
+`DEPLOY_DATADOG_AGENT=true`. It needs a `DD_API_KEY` that must never be
+committed to git, so the `datadog-secret` Secret it reads from is created
+manually, once, directly on the cluster.
 
 ## Steps
 
 1. Get a Datadog API key: **Organization Settings → API Keys** in the Datadog UI.
-2. Open a shell on the node via SSM (no SSH key needed):
+2. With `kubectl config use-context docker-desktop`:
 
    ```bash
-   aws ssm start-session --target "$(terraform -chdir=infra/terraform/envs/prod output -raw k3s_node_instance_id)"
-   ```
+   kubectl create namespace datadog --dry-run=client -o yaml | kubectl apply -f -
 
-3. Create the secret in the cluster:
-
-   ```bash
-   sudo /usr/local/bin/k3s kubectl create namespace datadog --dry-run=client -o yaml \
-     | sudo /usr/local/bin/k3s kubectl apply -f -
-
-   sudo /usr/local/bin/k3s kubectl create secret generic datadog-secret \
+   kubectl create secret generic datadog-secret \
      --namespace datadog \
      --from-literal api-key=<YOUR_DATADOG_API_KEY>
    ```
 
-4. Argo CD's `selfHeal` will already have the DaemonSet manifest applied and
-   crash-looping on the missing secret — it picks up the fix automatically within
-   its next reconcile (default: 3 minutes). Confirm:
+3. Re-run `DEPLOY_DATADOG_AGENT=true ./scripts/setup-local-cluster.sh` (or apply
+   the `datadog-agent` Argo CD Application manually) if you haven't already.
+   Argo CD's `selfHeal` picks up the secret automatically within its next
+   reconcile. Confirm:
 
    ```bash
-   sudo /usr/local/bin/k3s kubectl get pods -n datadog
+   kubectl get pods -n datadog
    ```
 
-This secret does not survive a node replacement (it's cluster state, not
-Terraform-managed) — redo this after any `terraform apply -replace=...` on the
-k3s node.
+This secret is cluster state, not tracked anywhere — redo it if you ever tear
+down and recreate the local cluster.

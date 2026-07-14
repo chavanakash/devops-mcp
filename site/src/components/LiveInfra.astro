@@ -5,12 +5,14 @@
   <div class="mx-auto max-w-5xl">
     <h2 class="text-sm font-medium tracking-wider text-[var(--accent)] uppercase">Live infra</h2>
     <p class="mt-2 max-w-2xl text-2xl font-semibold text-[var(--text)]">
-      This widget calls a service running on the k3s cluster, right now.
+      This widget calls a service running on a local Kubernetes cluster, right now.
     </p>
     <p class="mt-3 max-w-2xl text-sm text-[var(--text-muted)]">
-      <code class="font-mono text-[var(--accent)]">status-api</code> is deployed via Argo
-      CD GitOps and exposed from the EC2 node. It reports its own pod, uptime, and
-      request count — proof the cluster below is real and reachable, not a screenshot.
+      <code class="font-mono text-[var(--accent)]">status-api</code> runs on Docker Desktop's
+      Kubernetes, deployed via Argo CD GitOps, and is punched through to the public internet
+      with an ngrok tunnel while it's running. It reports its own pod, uptime, and request
+      count — proof the cluster is real, not a screenshot. If it shows unreachable, the
+      tunnel just isn't up right now (it's a local demo, not a 24/7 cloud endpoint).
     </p>
 
     <div
@@ -42,18 +44,20 @@
   </div>
 </section>
 
-<script>
+<script define:vars={{ apiUrl: import.meta.env.PUBLIC_STATUS_API_URL || "" }}>
   (async function () {
     const dot = document.getElementById("infra-dot");
     const statusText = document.getElementById("infra-status-text");
     const set = (id, val) => (document.getElementById(id).textContent = val);
 
-    // Relative path, proxied through CloudFront to the k3s node on /api/*
-    // (see infra/terraform/modules/static-site) — same-origin from the
-    // browser's point of view, and never plain HTTP, since status-api itself
-    // has no TLS and browsers block HTTPS-page-to-HTTP-API fetches outright.
+    if (!apiUrl) {
+      dot.style.background = "var(--text-muted)";
+      statusText.textContent = "status-api not configured yet (PUBLIC_STATUS_API_URL unset).";
+      return;
+    }
+
     try {
-      const res = await fetch("/api/stats", { cache: "no-store" });
+      const res = await fetch(`${apiUrl}/api/stats`, { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 
@@ -65,7 +69,7 @@
       set("stat-node", data.node ?? "unknown");
     } catch (err) {
       dot.style.background = "#ef4444";
-      statusText.textContent = "Cluster unreachable right now (cost-saving pause, or between deploys).";
+      statusText.textContent = "Cluster unreachable right now (the local demo isn't running/tunneled at the moment).";
     }
   })();
 </script>
